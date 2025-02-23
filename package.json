@@ -1,0 +1,8 @@
+{
+  "name": "sddpc",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
