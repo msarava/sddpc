@@ -10,17 +10,21 @@ export const drizzleProvider = [
     provide: DrizzleAsyncProvider,
     inject: [ConfigService],
     useFactory: async (configService: ConfigService) => {
-      const host = configService.get<string>('DB_HOST');
-      const port = parseInt(configService.get<string>('DB_PORT') || '5432');
-      const user = configService.get<string>('DB_USER');
-      const password = configService.get<string>('DB_PASSWORD');
-      const database = configService.get<string>('DB_NAME');
+      const isProduction =
+        configService.get<string>('NODE_ENV') === 'production';
+      const host = configService.get<string>('POSTGRES_HOST');
+      const port = parseInt(
+        configService.get<string>('POSTGRES_PORT') || '5432',
+      );
+      const user = configService.get<string>('POSTGRES_USER');
+      const password = configService.get<string>('POSTGRES_PASSWORD');
+      const database = configService.get<string>('POSTGRES_DB');
 
       const isDBSettingComplete = host && port && user && password && database;
 
       if (!isDBSettingComplete) {
         throw new Error(
-          'Missing environment variable to  connect to DB \n Check if DB_HOST, DB_PORT DB_USER DB_PASSWORD DB_NAME are defined',
+          'Missing environment variable to  connect to DB \n Check if POSTGRES_HOST, POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD DB_NAME are defined',
         );
       }
 
@@ -31,7 +35,7 @@ export const drizzleProvider = [
           user,
           password,
           database,
-          ssl: false,
+          ssl: isProduction ? { rejectUnauthorized: false } : false,
           max: 20, // Maximum number of clients in the pool
           idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
           connectionTimeoutMillis: 2000, // How long to wait for a connection
@@ -71,7 +75,7 @@ export const drizzleProvider = [
 
         return drizzle(pool, { schema }) as NodePgDatabase<typeof schema>;
       } catch (error) {
-        console.error('Failed to connect to database:', error);
+        console.error(database,'Failed to connect to database:', error);
         throw error;
       }
     },
