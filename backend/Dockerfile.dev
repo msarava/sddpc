@@ -1,12 +1,24 @@
 FROM node:22-alpine AS development
 
-#pnpm installation
+# pnpm installation
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install --location=global pnpm
+RUN npm install -g pnpm
 
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+
+# Copy package.json, pnpm-lock.yaml, and pnpm-workspace.yaml to the root
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+
+COPY backend ./backend
+
+# Install dependencies at the root
 RUN pnpm install
-COPY . .
+
+# Copy the entire backend directory
+
+WORKDIR /app/backend
+
 CMD ["pnpm", "run", "dev"]

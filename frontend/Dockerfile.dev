@@ -1,31 +1,40 @@
 FROM node:20-slim
 
-# Install pnpm
+# Install pnpm globally using npm (more reliable than corepack in this case)
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install --location=global pnpm
+RUN npm install -g pnpm@latest
 
-WORKDIR /frontend
+# Create app directory and set permissions
+WORKDIR /app
 
-# Create node user and set permissions
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
-RUN chown -R nestjs:nodejs /frontend
+# Create non-root user and set up directories with proper permissions
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs && \
+    mkdir -p /app/frontend && \
+    mkdir -p /app/frontend/node_modules && \
+    mkdir -p /pnpm/store && \
+    chown -R nestjs:nodejs /app && \
+    chown -R nestjs:nodejs /pnpm && \
+    chmod 777 /pnpm/store  # Changed permission to 777 for the store directory
 
 # Switch to non-root user
 USER nestjs
 
-# Copy package files
-COPY --chown=nestjs:nodejs package.json pnpm-lock.yaml ./
+WORKDIR /app/frontend
 
-# Install dependencies
-RUN pnpm install
+# Copy workspace files with correct permissions
+COPY --chown=nestjs:nodejs package.json pnpm-workspace.yaml tsconfig.json /app/
+COPY --chown=nestjs:nodejs pnpm-lock.yaml /app/
+COPY --chown=nestjs:nodejs frontend/package.json ./
 
-# Copy source code
-COPY --chown=nest:nodejs . .
+# Install dependencies with proper cache mounting
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,uid=1001,gid=1001 \
+    cd /app && pnpm install --no-frozen-lockfile
 
-# Expose port
+# Copy frontend source code
+COPY --chown=nestjs:nodejs frontend .
+
 EXPOSE 3000
 
-# Start development server
 CMD ["pnpm", "run", "dev", "--host"]
