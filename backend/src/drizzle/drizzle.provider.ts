@@ -12,29 +12,28 @@ export const drizzleProvider = [
     useFactory: async (configService: ConfigService) => {
       const isProduction =
         configService.get<string>('NODE_ENV') === 'production';
+      const dbUrl = configService.get<string>('POSTGRES_DB_URL');
+
       const host = configService.get<string>('POSTGRES_HOST');
-      const port = parseInt(
-        configService.get<string>('POSTGRES_PORT') || '5432',
-      );
+      const port = configService.get<string>('POSTGRES_PORT');
       const user = configService.get<string>('POSTGRES_USER');
       const password = configService.get<string>('POSTGRES_PASSWORD');
       const database = configService.get<string>('POSTGRES_DB');
+      const isLocalDbSetUp = host && port && user && password && database;
 
-      const isDBSettingComplete = host && port && user && password && database;
-
-      if (!isDBSettingComplete) {
-        throw new Error(
-          'Missing environment variable to  connect to DB \n Check if POSTGRES_HOST, POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD DB_NAME are defined',
+      if (!dbUrl && !isLocalDbSetUp) {
+        console.error(
+          'Missing environment variable to connect to DB: using default values',
         );
       }
+      const connectionString =
+        dbUrl ??
+        `postgresql://${user ?? 'postgres'}:${password ?? 'postgres'}@${host ?? 'db'}:${port ?? '5432'}/${database ?? 'sddpc-db'}`;
+      console.log(connectionString);
 
       try {
         const pool = new Pool({
-          host,
-          port,
-          user,
-          password,
-          database,
+          connectionString: connectionString,
           ssl: isProduction ? { rejectUnauthorized: false } : false,
           max: 20, // Maximum number of clients in the pool
           idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
@@ -75,7 +74,7 @@ export const drizzleProvider = [
 
         return drizzle(pool, { schema }) as NodePgDatabase<typeof schema>;
       } catch (error) {
-        console.error(database,'Failed to connect to database:', error);
+        console.error('Failed to connect to database:', dbUrl, error);
         throw error;
       }
     },

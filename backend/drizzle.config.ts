@@ -5,12 +5,13 @@ export default {
   out: './src/drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    host: process.env.POSTGRES_HOST || 'localhost',
-    port: parseInt(process.env.POSTGRES_PORT || '5432'),
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB || 'sddpc-db',
-    ssl: process.env.NODE_ENV === 'production'? { rejectUnauthorized: false } : false,
+    url:
+      process.env.POSTGRES_DB_URL ||
+      `postgresql://${process.env.POSTGRES_USER ?? 'postgres'}:${process.env.POSTGRES_PASSWORD ?? 'postgres'}@${process.env.POSTGRES_HOST ?? 'localhost'}:${process.env.POSTGRES_PORT ?? '5432'}/${process.env.POSTGRES_DB ?? 'sddpc-db'}`,
+    ssl:
+      process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
   },
   verbose: true,
   strict: true,
