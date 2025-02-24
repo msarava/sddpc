@@ -1,0 +1,28 @@
+# Docker files
+**/Dockerfile*
+**/docker-compose*.yml
+.dockerignore
+
+# Development files
+.git
+.github
+.gitignore
+README.md
+.env*
+*.log
+
+# Dependencies and build artifacts
+**/node_modules
+**/dist
+**/build
+**/.next
+**/.nuxt
+
+# IDE files
+.vscode
+.idea
+
+# Testing
+**/coverage
+**/*.test.*
+**/*.spec.*
