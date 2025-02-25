@@ -21,7 +21,7 @@ services:
       - '8000:8000'
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL} # Will use the hosted DB URL
+      - POSTGRES_DB_URL=${POSTGRES_DB_URL}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8000/api/users/ping']
