@@ -1,0 +1,55 @@
+# Build stage
+FROM node:22-alpine as build
+
+WORKDIR /app
+
+# Install pnpm with corepack
+# pnpm installation
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g pnpm
+
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+
+# Copy application code
+COPY backend ./backend
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build the application
+RUN cd backend && pnpm run build
+
+# Production stage
+FROM node:22-alpine as production
+
+# Create non-root user first - using Alpine's adduser
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nestjs
+
+WORKDIR /app
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Copy only necessary production files and set ownership in one layer
+COPY --from=build --chown=nestjs:nodejs /app/backend/dist ./dist
+COPY --from=build --chown=nestjs:nodejs /app/package.json ./
+COPY --from=build --chown=nestjs:nodejs /app/pnpm-lock.yaml ./
+
+# Set NODE_ENV and install production dependencies
+ENV NODE_ENV=production
+RUN pnpm install --prod --frozen-lockfile && \
+    pnpm store prune
+
+# Switch to non-root user
+USER nestjs
+
+# Clean up
+RUN rm -rf ~/.npm ~/.pnpm-store
+
+# Start application
+CMD ["node", "dist/src/main"]
